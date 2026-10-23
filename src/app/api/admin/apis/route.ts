@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/server";
+import { requireAdmin, sameOriginRequest } from "@/lib/server";
 
 export const runtime = "nodejs";
 
@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!sameOriginRequest(req)) return NextResponse.json({ error: "Permintaan lintas-origin ditolak." }, { status: 403 });
   const auth = await requireAdmin(req);
   if (auth.error) return auth.error;
   let b: any;
@@ -44,6 +45,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  if (!sameOriginRequest(req)) return NextResponse.json({ error: "Permintaan lintas-origin ditolak." }, { status: 403 });
   const auth = await requireAdmin(req);
   if (auth.error) return auth.error;
   let b: any;
@@ -70,6 +72,7 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  if (!sameOriginRequest(req)) return NextResponse.json({ error: "Permintaan lintas-origin ditolak." }, { status: 403 });
   const auth = await requireAdmin(req);
   if (auth.error) return auth.error;
   const id = new URL(req.url).searchParams.get("id");

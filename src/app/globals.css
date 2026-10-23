@@ -35,3 +35,21 @@
 .api-result{white-space:pre-wrap;overflow-wrap:anywhere;max-height:280px;overflow:auto;padding:14px;border-radius:12px;background:#111318;color:#d8e7ff;font-size:12px;line-height:1.6}
 .api-admin-actions{display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--border);padding-top:13px;margin-top:auto}
 @media(max-width:720px){.form-two,.api-tool-grid{grid-template-columns:1fr}.api-path-preview{align-items:flex-start;flex-direction:column}.api-admin-actions .btn{flex:1}}
+
+
+/* Security UI, profile quota and not-found page */
+.profile-name-with-badge{display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap}
+.profile-quota{margin-top:20px;padding:14px;border:1px solid var(--line);border-radius:10px;text-align:left;background:var(--soft)}
+.profile-quota>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px}
+.profile-quota>div:first-child span,.profile-quota small{color:var(--muted)}
+.profile-quota>div:first-child b{font-size:12px}
+.quota-track{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin:10px 0 8px}
+.quota-track i{display:block;height:100%;border-radius:99px;background:#3185f6;transition:width .2s}
+.profile-quota small{font-size:9px;line-height:1.5}
+.not-found-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:var(--bg,#0f1012);color:var(--text,#f4f4f5)}
+.not-found-card{width:min(460px,100%);text-align:center;border:1px solid var(--line,#303236);border-radius:20px;padding:38px 28px;background:var(--panel,#191a1d)}
+.not-found-icon{display:grid;place-items:center;margin:0 auto 22px;width:58px;height:58px;border-radius:17px;background:var(--soft,#24262a);color:#438bfa}
+.not-found-card .eyebrow{display:block;margin-bottom:12px}
+.not-found-card h1{font-size:clamp(25px,6vw,34px);letter-spacing:-.04em;margin:0 0 12px}
+.not-found-card p{font-size:13px;line-height:1.8;color:var(--muted,#a1a1aa);margin:0 auto 24px;max-width:340px}
+.not-found-card .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;text-decoration:none}

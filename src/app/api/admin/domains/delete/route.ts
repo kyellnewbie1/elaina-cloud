@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/server";
+import { requireAdmin, sameOriginRequest } from "@/lib/server";
 export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
+  if (!sameOriginRequest(req)) return NextResponse.json({ error: "Permintaan lintas-origin ditolak." }, { status: 403 });
   const auth = await requireAdmin(req);
   if (auth.error) return auth.error;
   let body: { id?: string };

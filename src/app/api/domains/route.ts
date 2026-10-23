@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, validLabel } from "@/lib/server";
+import { requireUser, validLabel, sameOriginRequest } from "@/lib/server";
 
 export const runtime = "nodejs";
 
@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!sameOriginRequest(req)) return NextResponse.json({ error: "Permintaan lintas-origin ditolak." }, { status: 403 });
   const auth = await requireUser(req);
   if (auth.error) return auth.error;
   let body: { label?: unknown; ip_address?: unknown };
