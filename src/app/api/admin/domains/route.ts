@@ -5,11 +5,23 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   const auth = await requireAdmin(req);
   if (auth.error) return auth.error;
-  const { data, error } = await auth.db.from("domain_requests")
-    .select("id,user_id,label,ip_address,dns_type,dns_name,dns_value,dns_ttl,dns_proxied,status,admin_note,fqdn,created_at,profiles(email,display_name)")
+  // Avoid PostgREST embedded-relation failures when the profiles FK relationship
+  // is not present/recognized in an existing Supabase schema. Fetch requests first,
+  // then attach profile details with a separate query.
+  const { data: requests, error } = await auth.db.from("domain_requests")
+    .select("id,user_id,label,ip_address,dns_type,dns_name,dns_value,dns_ttl,dns_proxied,status,admin_note,fqdn,created_at")
     .order("created_at", { ascending: false });
-  if (error) return NextResponse.json({ error: "Gagal memuat permintaan." }, { status: 500 });
-  return NextResponse.json({ domains: data });
+  if (error) return NextResponse.json({ error: `Gagal memuat permintaan: ${error.message}` }, { status: 500 });
+  const userIds = [...new Set((requests || []).map((item) => item.user_id).filter(Boolean))];
+  let profilesById: Record<string, { email?: string; display_name?: string }> = {};
+  if (userIds.length) {
+    const { data: profiles, error: profilesError } = await auth.db.from("profiles")
+      .select("id,email,display_name").in("id", userIds);
+    if (profilesError) return NextResponse.json({ error: `Permintaan ditemukan, tetapi profil pengguna gagal dimuat: ${profilesError.message}` }, { status: 500 });
+    profilesById = Object.fromEntries((profiles || []).map((profile) => [profile.id, { email: profile.email, display_name: profile.display_name }]));
+  }
+  const domains = (requests || []).map((item) => ({ ...item, profiles: profilesById[item.user_id] || null }));
+  return NextResponse.json({ domains });
 }
 
 export async function PATCH(req: NextRequest) {

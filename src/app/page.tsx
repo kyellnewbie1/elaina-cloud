@@ -84,7 +84,7 @@ export default function Home() {
     try { const result = await api("/api/domains"); setDomains(result.domains||[]); } catch(e:any) { setNotice({kind:"err",text:e.message}); }
     try { const toolResult = await api("/api/tools"); setApiTools(toolResult.apis||[]); } catch {}
     if (nextProfile.role === "admin") {
-      try { const result = await api("/api/admin/domains"); setAdminDomains(result.domains||[]); } catch {}
+      try { const result = await api("/api/admin/domains"); setAdminDomains(result.domains||[]); } catch(e:any) { setNotice({kind:"err",text:e.message || "Gagal memuat permintaan di Admin Panel."}); }
       try { const result = await api("/api/admin/apis"); setApiTools(result.apis||[]); } catch {}
     }
   }
