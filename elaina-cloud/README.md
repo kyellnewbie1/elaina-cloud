@@ -123,3 +123,51 @@ Official documentation:
 - Users can submit JSON to configured endpoints and inspect JSON responses.
 - Before deployment, run the latest `supabase/schema.sql`, set `SUPABASE_SERVICE_ROLE_KEY` and `API_PROXY_ALLOWED_HOSTS` in Vercel. Do not expose service role keys to client-side variables.
 - The generic proxy only forwards JSON requests to explicitly allowlisted HTTPS hostnames; test with a trusted endpoint first.
+
+
+## v1.4 security and profile update
+- Added a branded 404 page.
+- Added baseline HTTP security headers in `next.config.ts` (including clickjacking/content-type protections and HSTS). Verify deployment is HTTPS before using HSTS in production.
+- Added a visible domain quota meter to the profile and admin verified badge on the profile heading/card.
+- Updated `npm run lint` to run TypeScript checking for the current Next.js setup.
+
+### Important security checklist before public launch
+- Set Supabase Auth redirect URLs to the real production domains only.
+- Keep `SUPABASE_SERVICE_ROLE_KEY`, Cloudflare token, and all provider secrets in server-only environment variables; never use `NEXT_PUBLIC_` for secrets.
+- Run the latest `supabase/schema.sql`, verify RLS policies, and test that ordinary users cannot access admin routes.
+- Enable rate limiting/WAF at the edge and configure monitoring/backups. Security cannot be guaranteed solely by application code.
+
+### Domain target limitation
+The currently implemented provisioning workflow creates Cloudflare A records for IPv4 targets only. Vercel/Railway CNAME targets and provider-specific verification records need a separate schema/API migration and provider-specific checks; they are not claimed as enabled in this build.
+
+
+## Security hardening update (v1.5)
+- Added extra browser security headers (`X-DNS-Prefetch-Control`, `X-Permitted-Cross-Domain-Policies`, `Cross-Origin-Resource-Policy`) and disabled production browser source maps.
+- Added server utility helpers for bounded text input and same-origin request checks. These helpers must be called by each relevant route; their existence alone does not enforce protection globally.
+- Keep all service-role and Cloudflare secrets in server-only Vercel environment variables. Never use `NEXT_PUBLIC_` for secrets.
+
+### Important session limitation
+This update does **not** complete the requested migration to an HttpOnly-cookie-only session architecture. The current browser Supabase client still persists its auth session in IndexedDB, and API requests currently use bearer tokens. Do not describe this version as fully protected against session theft/XSS. A complete migration requires moving login/session handling to server routes using `@supabase/ssr`, updating every protected route and direct browser database operation, then testing login, refresh, logout, CSRF, RLS and admin permissions.
+
+### Before public production
+1. Audit every table's RLS policies and test as anonymous, regular user, and admin.
+2. Add a distributed rate limiter (for example, Upstash Redis) to login and expensive routes.
+3. Ensure every state-changing endpoint verifies origin/CSRF and validates payload schemas.
+4. Audit API proxy redirects, DNS rebinding and private IP/metadata destinations.
+5. Add a CSP compatible with the deployed Next.js app after checking all scripts/assets; do not blindly apply `unsafe-inline` or break the login flow.
+6. Run dependency audit and production build/tests before deploying.
+
+
+## Security hardening update (v1.6)
+- Added same-origin `Origin` validation to state-changing authenticated domain and admin API routes. Requests with a missing or mismatched Origin are rejected. Public API Hub endpoints remain callable by external clients by design.
+- Added a Content Security Policy in **Report-Only** mode so browser violations can be audited before enforcing a CSP that might break Next.js assets. Report-Only does not block scripts; it is monitoring, not a full CSP defense.
+- Retained existing security headers and disabled production browser source maps.
+
+### Still not a complete HttpOnly-session migration
+The current app still uses Supabase browser auth persisted in IndexedDB and bearer tokens for protected API requests. This v1.6 hardening does not eliminate that architecture or guarantee protection from XSS/session theft. A proper cookie migration must also move browser-direct Supabase reads/writes (profiles, announcements, settings, uploads) to secure server routes or use a tested `@supabase/ssr` setup, then test auth refresh, email confirmation, CSRF, RLS and admin authorization end-to-end.
+
+### Deploy checklist
+1. Keep `SUPABASE_SERVICE_ROLE_KEY` and `CLOUDFLARE_API_TOKEN` in server-only Vercel environment variables.
+2. Deploy to HTTPS and test login, domain create/review/delete, API Hub admin changes, announcements and banner uploads.
+3. Check browser console/network logs for CSP Report-Only violations. Only enforce a stricter CSP after resolving legitimate violations.
+4. Run `npm run lint` and `npm run build`; run RLS tests against anonymous, user and admin accounts before production.
