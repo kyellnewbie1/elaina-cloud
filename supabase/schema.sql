@@ -143,3 +143,39 @@ drop policy if exists "Admins update site assets" on storage.objects;
 create policy "Admins update site assets" on storage.objects for update to authenticated using (bucket_id = 'site-assets' and public.is_current_user_admin()) with check (bucket_id = 'site-assets' and public.is_current_user_admin());
 drop policy if exists "Admins delete site assets" on storage.objects;
 create policy "Admins delete site assets" on storage.objects for delete to authenticated using (bucket_id = 'site-assets' and public.is_current_user_admin());
+
+
+-- Admin-managed API registry. Public endpoints are routed only to preconfigured HTTPS targets.
+create table if not exists public.api_registry (
+  id uuid primary key default gen_random_uuid(),
+  name text not null check (char_length(name) between 1 and 80),
+  description text not null default '' check (char_length(description) <= 500),
+  category text not null default 'tools',
+  slug text not null unique check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
+  method text not null default 'GET' check (method in ('GET','POST','PUT','DELETE')),
+  path text generated always as ('/api/v1/' || category || '/' || slug) stored,
+  target_url text not null,
+  input_schema jsonb not null default '[]'::jsonb,
+  enabled boolean not null default true,
+  locked boolean not null default false,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists api_registry_enabled_idx on public.api_registry(enabled, category);
+alter table public.api_registry enable row level security;
+drop policy if exists "Public can read enabled API metadata" on public.api_registry;
+create policy "Public can read enabled API metadata" on public.api_registry
+  for select to anon, authenticated using (enabled = true and locked = false);
+drop policy if exists "Admins manage API registry" on public.api_registry;
+create policy "Admins manage API registry" on public.api_registry
+  for all to authenticated using (public.is_current_user_admin()) with check (public.is_current_user_admin());
+
+-- Flexible DNS request records. Actual provider integration remains server-side and approval-gated.
+alter table public.domain_requests add column if not exists dns_type text not null default 'A';
+alter table public.domain_requests add column if not exists dns_name text not null default '@';
+alter table public.domain_requests add column if not exists dns_value text;
+alter table public.domain_requests add column if not exists dns_ttl integer not null default 1;
+alter table public.domain_requests add column if not exists dns_proxied boolean not null default false;
+alter table public.domain_requests add column if not exists target_provider text not null default 'vps';
+alter table public.domain_requests add column if not exists provider_notes text;

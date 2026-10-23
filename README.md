@@ -100,3 +100,17 @@ Official documentation:
 - The ad interstitial is only a demo gate/countdown, not a real paid ad view and does not generate revenue. To monetize, integrate an approved ad network/provider and follow its rules; never fake impressions or clicks. The banner editor supports direct image upload to the public `site-assets` Supabase Storage bucket (maximum 5 MB) or a public HTTPS image URL. Announcement content is shared in Supabase; a per-user IndexedDB cache is local to that browser/profile and is not a cross-device backup.
 - Domain names are reserved across pending/active requests by a unique database index.
 - This is a starter implementation: run the build and test the whole approval flow with a test zone before using a production DNS zone.
+
+
+## API Hub (added in this source update)
+
+- Admin API registry endpoints: `GET/POST /api/admin/apis`, `PATCH /api/admin/apis`, `DELETE /api/admin/apis?id=...`.
+- Public metadata list: `GET /api/tools`.
+- Generic endpoints route through `/api/v1/<category>/<slug>` to an HTTPS target configured in the registry.
+- Add exact target hostnames to `API_PROXY_ALLOWED_HOSTS` in Vercel environment variables. The allowlist is mandatory to reduce SSRF risk.
+- Supported methods: GET, POST, PUT, DELETE. The proxy only accepts JSON responses and has a 15-second timeout.
+- This registry is an API configuration/backend foundation. It does not add a complete admin visual editor to the existing dashboard yet, and game logic/native handlers still need to be implemented as code.
+
+## Flexible DNS request schema (foundation)
+
+`domain_requests` now includes `dns_type`, `dns_name`, `dns_value`, `dns_ttl`, `dns_proxied`, `target_provider`, and `provider_notes`. The current domain request form and Cloudflare approval route still use the original A-record flow; extend the UI and provider adapters before claiming CNAME/TXT/MX/SRV or Vercel/Railway provider-specific automation is active. DNS alone does not provision a hosting project or attach a custom domain to Vercel/Railway; those integrations need their own provider credentials and API workflows.
