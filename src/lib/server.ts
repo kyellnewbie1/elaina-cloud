@@ -44,8 +44,17 @@ export function safeText(input: unknown, maxLength = 2000): string | null {
 
 /** Require same-origin browser requests for state-changing routes. */
 export function sameOriginRequest(req: NextRequest): boolean {
+  // Vercel/reverse proxies can make req.url's internal origin differ from the
+  // public browser origin. Compare Origin against the forwarded public host first.
   const origin = req.headers.get("origin");
   if (!origin) return false;
-  try { return new URL(origin).origin === new URL(req.url).origin; }
-  catch { return false; }
+  try {
+    const parsedOrigin = new URL(origin);
+    if (parsedOrigin.protocol !== "https:" && parsedOrigin.protocol !== "http:") return false;
+    const publicHost = (req.headers.get("x-forwarded-host") || req.headers.get("host") || "").split(",")[0].trim().toLowerCase();
+    if (publicHost) return parsedOrigin.host.toLowerCase() === publicHost;
+    return parsedOrigin.origin === req.nextUrl.origin;
+  } catch {
+    return false;
+  }
 }
