@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
   const auth = await requireAdmin(req);
   if (auth.error) return auth.error;
   const { data, error } = await auth.db.from("domain_requests")
-    .select("id,user_id,label,ip_address,status,admin_note,created_at,profiles(email,display_name)")
+    .select("id,user_id,label,ip_address,dns_type,dns_name,dns_value,dns_ttl,dns_proxied,status,admin_note,fqdn,created_at,profiles(email,display_name)")
     .order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: "Gagal memuat permintaan." }, { status: 500 });
   return NextResponse.json({ domains: data });
@@ -36,10 +36,14 @@ export async function PATCH(req: NextRequest) {
   const suffix = (process.env.DOMAIN_SUFFIX || "elaina-cloud.my.id").replace(/^\.+|\.+$/g, "");
   if (!token || !zone) return NextResponse.json({ error: "Cloudflare belum dikonfigurasi di environment Vercel." }, { status: 503 });
   const fqdn = `${item.label}.${suffix}`;
+  const dnsType = ["A", "AAAA", "CNAME", "TXT"].includes(item.dns_type) ? item.dns_type : "A";
+  const dnsValue = item.dns_value || item.ip_address;
+  if (!dnsValue) return NextResponse.json({ error: "Nilai DNS kosong. Minta pengguna mengirim ulang permintaan." }, { status: 400 });
+  const recordName = item.dns_name && item.dns_name !== "@" ? `${item.dns_name}.${fqdn}` : fqdn;
   const cf = await fetch(`https://api.cloudflare.com/client/v4/zones/${zone}/dns_records`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ type: "A", name: fqdn, content: item.ip_address, ttl: 1, proxied: false })
+    body: JSON.stringify({ type: dnsType, name: recordName, content: dnsValue, ttl: item.dns_ttl || 1, proxied: ["A", "AAAA", "CNAME"].includes(dnsType) && item.dns_proxied === true })
   });
   const cfData = await cf.json().catch(() => null);
   if (!cf.ok || !cfData?.success) {
@@ -56,5 +60,5 @@ export async function PATCH(req: NextRequest) {
     }).catch(() => null);
     return NextResponse.json({ error: "DNS dibuat tetapi penyimpanan database gagal; record telah dicoba di-rollback." }, { status: 500 });
   }
-  return NextResponse.json({ message: `Domain ${fqdn} berhasil dibuat.`, fqdn });
+  return NextResponse.json({ message: `DNS ${dnsType} untuk ${recordName} berhasil dibuat.`, fqdn: recordName });
 }

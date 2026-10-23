@@ -16,7 +16,7 @@ create table if not exists public.domain_requests (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
   label text not null check (label ~ '^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$'),
-  ip_address inet not null,
+  ip_address inet,
   status text not null default 'pending' check (status in ('pending','approved','provisioning','active','rejected','failed')),
   fqdn text,
   cloudflare_record_id text,
@@ -179,3 +179,17 @@ alter table public.domain_requests add column if not exists dns_ttl integer not 
 alter table public.domain_requests add column if not exists dns_proxied boolean not null default false;
 alter table public.domain_requests add column if not exists target_provider text not null default 'vps';
 alter table public.domain_requests add column if not exists provider_notes text;
+
+-- Flexible DNS records supported by the dashboard.
+ALTER TABLE public.domain_requests ADD COLUMN IF NOT EXISTS dns_type text not null default 'A';
+ALTER TABLE public.domain_requests ADD COLUMN IF NOT EXISTS dns_name text not null default '@';
+ALTER TABLE public.domain_requests ADD COLUMN IF NOT EXISTS dns_value text;
+ALTER TABLE public.domain_requests ADD COLUMN IF NOT EXISTS dns_ttl integer not null default 1;
+ALTER TABLE public.domain_requests ADD COLUMN IF NOT EXISTS dns_proxied boolean not null default false;
+ALTER TABLE public.domain_requests ADD COLUMN IF NOT EXISTS target_provider text not null default 'vps';
+ALTER TABLE public.domain_requests ADD COLUMN IF NOT EXISTS provider_notes text;
+UPDATE public.domain_requests SET dns_value = host(ip_address) WHERE dns_value IS NULL AND ip_address IS NOT NULL;
+ALTER TABLE public.domain_requests DROP CONSTRAINT IF EXISTS domain_requests_dns_type_check;
+ALTER TABLE public.domain_requests ADD CONSTRAINT domain_requests_dns_type_check CHECK (dns_type IN ('A','AAAA','CNAME','TXT'));
+ALTER TABLE public.domain_requests DROP CONSTRAINT IF EXISTS domain_requests_dns_ttl_check;
+ALTER TABLE public.domain_requests ADD CONSTRAINT domain_requests_dns_ttl_check CHECK (dns_ttl IN (1,60,120,300,600,900,1800,3600,7200,18000,43200,86400));
