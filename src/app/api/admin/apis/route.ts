@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   const auth = await requireAdmin(req);
   if (auth.error) return auth.error;
   const { data, error } = await auth.db.from("api_registry")
-    .select("id,name,description,category,method,path,target_url,input_schema,enabled,locked,created_at,updated_at")
+    .select("id,name,description,category,slug,method,path,target_url,input_schema,enabled,locked,created_at,updated_at")
     .order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: "Gagal memuat daftar API. Jalankan schema terbaru." }, { status: 500 });
   return NextResponse.json({ apis: data });

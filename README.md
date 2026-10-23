@@ -114,3 +114,12 @@ Official documentation:
 ## Flexible DNS request schema (foundation)
 
 `domain_requests` now includes `dns_type`, `dns_name`, `dns_value`, `dns_ttl`, `dns_proxied`, `target_provider`, and `provider_notes`. The current domain request form and Cloudflare approval route still use the original A-record flow; extend the UI and provider adapters before claiming CNAME/TXT/MX/SRV or Vercel/Railway provider-specific automation is active. DNS alone does not provision a hosting project or attach a custom domain to Vercel/Railway; those integrations need their own provider credentials and API workflows.
+
+
+## UI update: Tools and verified admin
+- The hamburger sidebar now includes **Tools**.
+- Admins see a blue verified badge beside their account name and on API cards.
+- The Tools page has an API registry form and controls to enable/disable, lock/unlock, or remove registered APIs.
+- Users can submit JSON to configured endpoints and inspect JSON responses.
+- Before deployment, run the latest `supabase/schema.sql`, set `SUPABASE_SERVICE_ROLE_KEY` and `API_PROXY_ALLOWED_HOSTS` in Vercel. Do not expose service role keys to client-side variables.
+- The generic proxy only forwards JSON requests to explicitly allowlisted HTTPS hostnames; test with a trusted endpoint first.
